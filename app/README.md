@@ -10,7 +10,7 @@ Run the notebook on the EC2 instance:
 ### Load Data into MongoDB
 Run the notebook on the EC2 instance:
 
-* w210-load-data-from-backup-mongodb.ipynb
+* eda/w210-load-data-from-backup-mongodb.ipynb
 
 ### Provision your EC2 instance
 I used a single m1.large spot instance (hourly rate about $0.03) and the spot-instance

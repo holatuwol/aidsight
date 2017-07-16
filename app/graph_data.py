@@ -7,6 +7,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import requests
 import six
 import sys
 import tarfile
@@ -17,13 +18,26 @@ def download_archive(filename):
     if os.path.isfile(filename):
         return
 
-    s3_connection = connect_to_region('us-west-2', calling_format=OrdinaryCallingFormat())
-    bucket = s3_connection.get_bucket(s3_bucket, validate=False)
-    key = bucket.get_key(filename)
+    url = 'https://s3-%s.amazonaws.com/%s/%s' % (s3_region, s3_bucket, filename)
+    content = None
 
-    with open(filename, 'wb') as f:
-        print('Downloading', filename, file=sys.stderr)
-        key.get_file(f)
+    try:
+        r = requests.get(url)
+        content = r.content
+    except:
+        pass
+
+    if content is None:
+        s3_connection = connect_to_region('us-west-2', calling_format=OrdinaryCallingFormat())
+        bucket = s3_connection.get_bucket(s3_bucket, validate=False)
+        key = bucket.get_key(filename)
+
+        with open(filename, 'wb') as f:
+            print('Downloading', filename, file=sys.stderr)
+            key.get_file(f)
+    else:
+        with open(filename, 'wb') as f:
+            f.write(content)
 
     if not os.path.isdir('data'):
         os.mkdir('data')
@@ -50,18 +64,12 @@ def load_dictionary_file(filename):
 download_archive('lookup.tar.gz')
 lookup_by_name, lookup_by_name_lower = load_dictionary_file('data/lookup_by_name.pickle')
 lookup_by_ref, lookup_by_ref_lower = load_dictionary_file('data/lookup_by_ref.pickle')
-
-download_archive('short_names.tar.gz')
 short_names_by_ref, short_names_by_ref_lower = load_dictionary_file('data/short_names_by_ref.pickle')
+iati_urls_by_ref, iati_urls_by_ref_lower = load_dictionary_file('data/iati_urls_by_ref.pickle')
 
 download_archive('codelist.tar.gz')
 codelist_sectors, codelist_sectors_lower = load_dictionary_file('data/codelist_sectors.pickle')
 codelist_policy_markers, codelist_policy_markers_lower = load_dictionary_file('data/codelist_policy_markers.pickle')
-
-# Pickled URL files
-
-download_archive('iati-urls.tar.gz')
-iati_urls_by_ref, iati_urls_by_ref_lower = load_dictionary_file('data/iati_urls_by_ref.pickle')
 
 # Pickled graph files
 
@@ -98,7 +106,7 @@ def get_best_label(labels):
 
 best_label_by_ref = {}
 
-for node in organization_nodes.iterkeys():
+for node in six.iterkeys(organization_nodes):
     if node in short_names_by_ref:
         labels = short_names_by_ref[node]
     elif node in lookup_by_ref:

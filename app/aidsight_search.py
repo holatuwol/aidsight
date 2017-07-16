@@ -17,7 +17,7 @@ from config import *
 from graph_data import *
 
 try:
-    conn = pymongo.MongoClient('mongodb://%s:%s' % (mongodb_host, mongodb_port))
+    conn = pymongo.MongoClient(mongodb_host, mongodb_port)
     db = conn.iati
 
     activities = db.activities
@@ -76,6 +76,8 @@ def get_location_activities(location_query):
 
             if 'location' in activity_node:
                 for location in activity_node['location']:
+                    if location is None:
+                        continue
                     if location.lower().find(location_query) != -1:
                         add_activity = True
 
@@ -116,7 +118,7 @@ def get_organization_relationships(sectors, policy_markers, sector_query, locati
     allowed_nodes = set()
 
     if organization_query is not None:
-        for name, keys in lookup_by_name_lower.iteritems():
+        for name, keys in six.iteritems(lookup_by_name_lower):
             if name.find(organization_query) != -1:
                 allowed_nodes |= keys
 
@@ -185,7 +187,7 @@ def get_organization_relationships(sectors, policy_markers, sector_query, locati
     # Convert the set of neighbors into a list
 
     matching_neighbors_lists = {
-        key: list(value) for key, value in matching_neighbors.iteritems()
+        key: list(value) for key, value in six.iteritems(matching_neighbors)
     }
 
     return matching_nodes, matching_edge_tuples, matching_neighbors_lists
@@ -214,7 +216,7 @@ def get_codelist_matches(codelist, attributes, query_term):
         # Check if we have the attribute in the term vector
 
         matches = [
-            key for key, value in codelist.iteritems()
+            key for key, value in six.iteritems(codelist)
                 if attribute in value and len(value[attribute] & tokenized_term) > 0
         ]
 
@@ -226,7 +228,7 @@ def get_codelist_matches(codelist, attributes, query_term):
         raw_attribute = attribute + '_raw'
 
         matches = [
-            key for key, value in codelist.iteritems()
+            key for key, value in six.iteritems(codelist)
                 if raw_attribute in value and value[raw_attribute].find(query_term) != -1
         ]
 
@@ -311,13 +313,15 @@ def get_node_object(num, node):
     }
 
 def get_edge_object(num, edge, min_count, spaces, edge_min):
+    size = np.argmax(spaces >= edge[1]) + edge_min
+
     return {
         'id': str(num),
         'source': edge[0][0],
         'target': edge[0][1],
         'color': '#fff',
         'label': '%s activities' % edge[1],
-        'size': np.argmax(spaces >= edge[1]) + edge_min
+        'size': str(size)
     }
 
 def format_file_size(size):
@@ -388,7 +392,7 @@ def get_quality(org=False):
 
     impute_output=[]
     record['num_impute_options']=len(record['impute_options'])
-    for f in record['impute_options'].iteritems():
+    for f in six.iteritems(record['impute_options']):
         try:
             temp_row={'field':field_lookup[f[0]],'replacement_organization_id':f[1]['organization_id'],'url':get_iati_url(f[1]['organization_id']),'grade':f[1]['grade']}
             impute_output.append(temp_row)

@@ -1,5 +1,10 @@
 from flask import request, Response
-from StringIO import StringIO #needs older version of StringIO to work with Unicode properly
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 import sys
 
 class AidsightError(Exception):
